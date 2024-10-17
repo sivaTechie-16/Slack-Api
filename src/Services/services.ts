@@ -64,10 +64,9 @@ app.action("yes_button", async ({ body, ack, say }) => {
   await ack();
   const userId = body.user.id;
   const userName = await getUserName(userId);
-
   const alreadyResponded = await checkIfUserResponded(userName);
   if (alreadyResponded) {
-    await say(`You have already responded, ${userName}.`);
+    await say(`${userName} have already responded, .`);
     return;
   }
 
@@ -83,7 +82,7 @@ app.action("no_button", async ({ body, ack, say }) => {
 
   const alreadyResponded = await checkIfUserResponded(userName);
   if (alreadyResponded) {
-    await say(`You have already responded, ${userName}.`);
+    await say(`${userName} have already responded, .`);
     return;
   }
 
@@ -91,6 +90,26 @@ app.action("no_button", async ({ body, ack, say }) => {
   await say(`${userName} has not been counted for lunch.`);
   await saveResponseToDB(userName, "No");
 });
+
+const checkIfUserResponded = async (userName: string) => {
+  const responseRepository = AppDataSource.getRepository(LunchCount);
+  const today = new Date().toISOString().split('T')[0];
+  const existingResponse = await responseRepository.findOne({
+    where: {
+      userName,
+    },
+  });
+
+  if (existingResponse) {
+    const responseDate = existingResponse.timestamp.toISOString().split('T')[0];
+    if (responseDate === today) {
+      return true; 
+    }
+  }
+
+  return false; 
+};
+
 
 const getUserName = async (userId: string) => {
   try {
@@ -108,13 +127,7 @@ const getUserName = async (userId: string) => {
   }
 };
 
-const checkIfUserResponded = async (userName: string) => {
-  const responseRepository = AppDataSource.getRepository(LunchCount);
-  const existingResponse = await responseRepository.findOne({
-    where: { userName },
-  });
-  return !!existingResponse;
-};
+
 
 export const saveResponseToDB = async (userName: string, response: string) => {
   const responseRepository = AppDataSource.getRepository(LunchCount);
