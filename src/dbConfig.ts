@@ -15,6 +15,8 @@ export const AppDataSource = new DataSource({
   logging: true,
   entities: [path.join(process.cwd(), "src/Models/*.ts")],
   migrations: [],
+  subscribers: [],
+
 });
 
 export const checkConnection = async () => {
