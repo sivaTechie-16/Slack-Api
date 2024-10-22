@@ -9,8 +9,8 @@ dotenv.config();
 export const app = new App({
   signingSecret: process.env.SLACK_SIGNING_SECRET,
   token: process.env.SLACK_BOT_TOKEN,
-  socketMode: true,
   appToken: process.env.SLACK_APP_TOKEN,
+  socketMode: true,
   port: 4000,
 });
 
@@ -69,7 +69,6 @@ app.action("yes_button", async ({ body, ack, say }) => {
     await say(`${userName} have already responded, .`);
     return;
   }
-
   console.log(`${userName} responded 'Yes'`);
   await say(`${userName} has been counted for lunch!`);
   await saveResponseToDB(userName, "Yes");
@@ -79,39 +78,40 @@ app.action("no_button", async ({ body, ack, say }) => {
   await ack();
   const userId = body.user.id;
   const userName = await getUserName(userId);
-
   const alreadyResponded = await checkIfUserResponded(userName);
   if (alreadyResponded) {
     await say(`${userName} have already responded, .`);
     return;
   }
-
   console.log(`${userName} responded 'No'`);
   await say(`${userName} has not been counted for lunch.`);
   await saveResponseToDB(userName, "No");
 });
 
-const checkIfUserResponded = async (userName: string) => {
+export const checkIfUserResponded = async (userName: string) => {
+  try{
   const responseRepository = AppDataSource.getRepository(LunchCount);
-  const today = new Date().toISOString().split('T')[0];
-  const existingResponse = await responseRepository.findOne({
-    where: {
-      userName,
-    },
-  });
+  const today = new Date().toISOString().split("T")[0];
+  const existingResponse = await responseRepository
+    .createQueryBuilder("exist")
+    .where("exist.userName = :userName", { userName })
+    .andWhere("DATE(exist.timestamp) = :today", { today })
+    .getOne();
 
   if (existingResponse) {
-    const responseDate = existingResponse.timestamp.toISOString().split('T')[0];
+    const responseDate = existingResponse.timestamp.toISOString().split("T")[0];
     if (responseDate === today) {
-      return true; 
+      return true;
     }
   }
-
-  return false; 
+  return false;
+}catch (error) {
+  console.error("Error fetching user info:", error);
+  throw new Error("Unable to fetch user info");
+}
 };
 
-
-const getUserName = async (userId: string) => {
+export const getUserName = async (userId: string) => {
   try {
     const result = await app.client.users.info({
       user: userId,
@@ -127,19 +127,20 @@ const getUserName = async (userId: string) => {
   }
 };
 
-
-
 export const saveResponseToDB = async (userName: string, response: string) => {
+  try{
   const responseRepository = AppDataSource.getRepository(LunchCount);
-
   const newResponse = responseRepository.create({
     userName,
     response,
     timestamp: new Date(),
   });
-
   await responseRepository.save(newResponse);
   console.log("Response saved to DB");
+}catch (error) {
+  console.error("Error fetching user info:", error);
+  throw new Error("Unable to fetch user info");
+}
 };
 
 export const getLunchCountData = async (req: Request, res: Response) => {

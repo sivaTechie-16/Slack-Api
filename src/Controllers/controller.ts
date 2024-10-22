@@ -1,6 +1,6 @@
 
 import dotenv from "dotenv";
-import {   getLunchCountData, sendSlackMessage} from "../Services/services";
+import {   sendSlackMessage} from "../Services/services";
 dotenv.config();
 
 export const sendMessageController = async (req,res) => {
